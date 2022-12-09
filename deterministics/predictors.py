@@ -29,13 +29,15 @@ class PeriodicMeanStd():
         if self.flag_day:
             self.conditions.append(X.index.day)
             self.index_names.append("day")
-        elif self.flag_week:
+        if self.flag_week:
+            print("WEEK")
             self.conditions.append(X.index.weekday)
             self.index_names.append("weekday")
-        elif self.flag_hour:
+        if self.flag_hour:
+            print("HOUR")
             self.conditions.append(X.index.hour)
             self.index_names.append("hour")
-        elif self.flag_minute:
+        if self.flag_minute:
             self.conditions.append(X.minute)
             self.index_names.append("minute")
 
