@@ -30,15 +30,13 @@ class PeriodicMeanStd():
             self.conditions.append(X.index.day)
             self.index_names.append("day")
         if self.flag_week:
-            print("WEEK")
             self.conditions.append(X.index.weekday)
             self.index_names.append("weekday")
         if self.flag_hour:
-            print("HOUR")
             self.conditions.append(X.index.hour)
             self.index_names.append("hour")
         if self.flag_minute:
-            self.conditions.append(X.minute)
+            self.conditions.append(X.index.minute)
             self.index_names.append("minute")
 
         self.periodic_mean = X.groupby(self.conditions).mean()
@@ -104,12 +102,27 @@ class PeriodicMeanStd():
             periodic_mean_aux = self.periodic_mean
             periodic_std_aux = self.periodic_std   
 
+         # Condiotions of df
+        conditions_aux = []
+        if self.flag_day:
+            conditions_aux.append(df.index.day)
+            self.index_names.append("day")
+        if self.flag_week:
+            conditions_aux.append(df.index.weekday)
+            self.index_names.append("weekday")
+        if self.flag_hour:
+            conditions_aux.append(df.index.hour)
+            self.index_names.append("hour")
+        if self.flag_minute:
+            conditions_aux.append(df.index.minute)
+            self.index_names.append("minute")
+
         output_mean = df.copy()
         output_std = df.copy()
         num = df.shape[0]
         for i in range(num):
-            output_mean[i:i+1] = periodic_mean_aux.loc[(self.conditions[0][i], self.conditions[1][i], self.conditions[2][i])]
-            output_std[i:i+1] = periodic_std_aux.loc[(self.conditions[0][i], self.conditions[1][i], self.conditions[2][i])]
+            output_mean[i:i+1] = periodic_mean_aux.loc[(conditions_aux[0][i], conditions_aux[1][i], conditions_aux[2][i])]
+            output_std[i:i+1] = periodic_std_aux.loc[(conditions_aux[0][i], conditions_aux[1][i], conditions_aux[2][i])]
 
         # Data
         X = df.values
@@ -123,15 +136,18 @@ class PeriodicMeanStd():
             thdown = output_mean - alpha*output_std
             thup = output_mean + alpha*output_std
             
-            pre_predict = (df < thdown) | (df > thup)
-            pre_predict = pre_predict.astype(int)
+            self.pre_predict = (df < thdown) | (df > thup)
+            self.pre_predict = self.pre_predict.astype(int)
             
             for c in range(df.shape[1]):
+                df_y_col = df_y.iloc[:,c].values
+                pre_predict_col = self.pre_predict.iloc[:,c].values
+
                 if custom_metrics:
-                    if np.allclose(np.unique(pre_predict[:,c]), np.array([0, 1])) or np.allclose(np.unique(pre_predict[:,c]), np.array([1])):
-                        pre_value = ts_precision(df_y[:,c], pre_predict[:,c], 
+                    if np.allclose(np.unique(pre_predict_col), np.array([0, 1])) or np.allclose(np.unique(pre_predict_col), np.array([1])):
+                        pre_value = ts_precision(df_y_col, pre_predict_col, 
                                         al, cardinality, bias)
-                        rec_value = ts_recall(df_y[:,c], pre_predict[:,c], 
+                        rec_value = ts_recall(df_y_col, pre_predict_col, 
                                         al, cardinality, bias)
                         f1_value = 2*(pre_value*rec_value)/(pre_value+rec_value+1e-6)
                     else:
@@ -139,9 +155,9 @@ class PeriodicMeanStd():
                         rec_value = 0
                         f1_value = 0
                 else:
-                    f1_value = f1_score(df_y[:,c], pre_predict[:,c], pos_label=1)
-                    pre_value = precision_score(df_y[:,c], pre_predict[:,c], pos_label=1)
-                    rec_value = recall_score(df_y[:,c], pre_predict[:,c], pos_label=1)
+                    f1_value = f1_score(df_y_col, pre_predict_col, pos_label=1)
+                    pre_value = precision_score(df_y_col, pre_predict_col, pos_label=1)
+                    rec_value = recall_score(df_y_col, pre_predict_col, pos_label=1)
                 
                 if f1_value >= best_f1[c]:
                     best_f1[c] = f1_value
@@ -150,7 +166,7 @@ class PeriodicMeanStd():
         self.alpha = best_alpha
         self.f1_val = best_f1
         
-        with open(self.name + '_alpha_up.pkl', 'wb') as f:
+        with open(self.name + '_alpha.pkl', 'wb') as f:
             pickle.dump(best_alpha, f)
             f.close()
         
@@ -170,16 +186,32 @@ class PeriodicMeanStd():
             periodic_mean_aux = self.periodic_mean
             periodic_std_aux = self.periodic_std 
 
+         # Condiotions of df
+        conditions_aux = []
+        if self.flag_day:
+            conditions_aux.append(df.index.day)
+            self.index_names.append("day")
+        if self.flag_week:
+            conditions_aux.append(df.index.weekday)
+            self.index_names.append("weekday")
+        if self.flag_hour:
+            conditions_aux.append(df.index.hour)
+            self.index_names.append("hour")
+        if self.flag_minute:
+            conditions_aux.append(df.index.minute)
+            self.index_names.append("minute")
+
+
         output_mean = df.copy()
         output_std = df.copy()
         num = df.shape[0]
         for i in range(num):
-            output_mean[i:i+1] = periodic_mean_aux.loc[(self.conditions[0][i], self.conditions[1][i], self.conditions[2][i])]
-            output_std[i:i+1] = periodic_std_aux.loc[(self.conditions[0][i], self.conditions[1][i], self.conditions[2][i])]
+            output_mean[i:i+1] = periodic_mean_aux.loc[(conditions_aux[0][i], conditions_aux[1][i], conditions_aux[2][i])]
+            output_std[i:i+1] = periodic_std_aux.loc[(conditions_aux[0][i], conditions_aux[1][i], conditions_aux[2][i])]
 
 
         if load_alpha:
-            with open(self.name + '_alpha_down.pkl', 'rb') as f:
+            with open(self.name + '_alpha.pkl', 'rb') as f:
                 alpha = pickle.load(f)
                 f.close()
         else:
@@ -191,7 +223,7 @@ class PeriodicMeanStd():
         detections = (df < thdown) | (df > thup)
         detections = detections.astype(int)
 
-        return detections
+        return detections, output_mean, thdown, thup
 
         
 
